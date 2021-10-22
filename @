@@ -1,0 +1,20 @@
+#!/bin/bash
+
+SIGNALPID=`pidof /opt/Signal/signal-desktop
+
+read LENGTH <<< "$SIGNALPID"
+
+LENGTH=("${#LENGTH[@]}")
+
+
+echo $SIGNALPID
+echo $LENGTH
+
+# echo "$LENGTHOFPID"
+
+#LENGTHOFPID=`expr $LENGTHOFPID - ((LENGTHOFPID - 6) / 7)`
+
+# echo "$LENGTHOFPID"
+# echo "${SIGNALPID:LENGTHOFPID}
+
+exit 0
