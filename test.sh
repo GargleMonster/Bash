@@ -1,27 +1,36 @@
 #!/bin/bash
 
-file='/home/garglemonster/Documents/bash_scripts/signal/100_quotes_test'
+file='100_quotes'
+count=0
 
-# CHECK IF FILE EXISTS
+main () {
+	# Call file check function
+	checkFile $file
+	go $file
+}
 
-number=119
+checkFile() {
+	if test -f $1
+	then
+		echo "$1 file exists."
+	else
+		echo "$1 does not exist."
+	fi
+}
 
-if test -f "$file"
-then
-        echo "$file exists."
-        i=1
-        while read line
-        do
-                if [ "$i" -eq "$number" ]
-                then
-                        echo "Below will be published ... \n"
-                        echo "$line"
-                        break
-                fi
+go () {
+	while read line
+	do
+		if [ "${line:0:1}" -eq 0 ]
+		then
+			echo "${line:0:1}"
+			((count+=1))
+		fi
+	done < $1
 
-                ((i+=1))
-        done < "$file"
-else
-        echo "Error: $file was not found!"
-fi
+	echo "$count"
+}
 
+main
+
+exit 0

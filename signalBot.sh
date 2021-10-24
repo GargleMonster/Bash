@@ -1,94 +1,86 @@
 #!/bin/bash
 
-isRunning=false
 signal='/opt/Signal/signal-desktop'
-signalPid=0
+file='/home/garglemonster/Documents/bash_scripts/signal/100_quotes'
+signalGroup='Andrea Mazza'
+isRunning=false
 
-while [ $isRunning == "false" ]
-do
-	# CHECK IF SIGNAL IS RUNNING
+
+# IS SIGNAL OPEN? VERY IMPORTANT QUESTION
+while [ "$isRunning" = false ] 
+do 
 	if ps ax | grep -v grep | grep $signal > /dev/null
 	then
-		echo "$signal service is running!"
-		isRunning=true
-		list=$(pidof $signal)
-		echo $list > list.txt
-		sed -i 's/ /\n/g' list.txt
-		sort -n -o list.txt list.txt
-		signalPid=$(head -n 1 list.txt)
-		rm -f list.txt
+		killall -15 $signal
+		# DECIDED TO KILL ANY INSTANCE BECAUSE IF IT IS ALREADY OPEN IT CREATES PROBLEMS
+		# I DON'T WANT TO DEAL WITH RIGHT NOW
+		# isRunning=true
+		# list=$(pidof $signal)
+		# echo $list > list.txt
+		# sed -i 's/ /\n/g' list.txt
+		# sort -n -o list.txt list.txt
+		# signalPid=$(head -n 1 list.txt)
+		# rm -f list.txt
+		# echo "$signal was already running with a pidof: $signalPid"
 	else
-		echo "$signal is not running!"
-		echo "Attempting to open ..."
 		/bin/bash /home/garglemonster/Documents/bash_scripts/signal/startSignal.sh & signalPid=$(($! + 2))
-		sleep 3s
-		break
+		echo "$signal was not running, but we started it with pidof: $signalPid"
+		isRunning=true
+		sleep 124s
 	fi
 
-	sleep 7s	
+	sleep 7s
 done
 
-# WAIT A BIT TO ENSURE ALL MESSAGES ARE LOADED
-# MAYHAPS LATER WE'LL DO A HOOK INTO SIGNAL TO SEE THE MESSAGE LOADING STATUS
 
-sleep 29s
-
-# CHOOSE A RANDOM NUMBER BETWEEN 1-115
-
-echo "Create random number between 1 and 115 ..."
-number=`python3 -c "import random; print(random.SystemRandom().randint(1, 115))"`
-echo "The number is $number"
-
-# OPEN FILE AND SELECT LINE CORRESPONDING TO RANDOM NUMBER
-
-file='/home/garglemonster/Documents/bash_scripts/signal/100_quotes'
-
-# CHECK IF FILE EXISTS
-
-if test -f "$file"
+# SIGNAL IS UP AND RUNNING NOW SO DO THE OTHER THINGS
+# COUNT THE LINES THEN PULL THE RANDO NUMBER
+lines=$(awk '/^0/{n++}; END {print n+0}' $file)
+# IF YOU'VE USED UP ALL THE QUOTES WE MUST BEGIN AGAIN, SET EVERYTHING TO 0
+if [ "$lines" -eq 0 ] 
 then
-	echo "$file exists."
-	i=1
-	while read line
-	do
-		if [ "$i" -eq "$number" ]
-		then
-			echo "Below will be published ... \n"
-			echo "$line"
-			break
-		fi
+	sed -i 's/^1/0/' $file
+	lines=$(wc -l < $file)	
+fi	
+echo "Generate a true random number between 1 and $lines ..."
+randomNumber=`python3 -c "import random; print(random.SystemRandom().randint(1, $lines))"`
+echo "The selected line is $randomNumber!"
 
-		((i+=1))
-	done < "$file"
-else
-	echo "Error: $file was not found!"
-fi
 
-# QUOTE HAS BEEN SELECTED NOW POST TO GROUP
+# NOW THAT WE HAVE THE LINE NUMBER LETS GRAB IT FROM THE FILE
+# THEN LETS DO A LITTLE HOUSEKEEPING
+line=$(sed -n "$randomNumber"p $file)
+quote=$(echo $line | awk '{print substr($0, 19, length($0))}')
+echo "This is the quote ... "
+echo "$quote"
+sed -i "/$line/d" $file
+echo $line | sed "s/0\s[A-Za-z][A-Za-z][A-Za-z]-[0-9]*\s[0-9]*\s[0-9]*:[0-9]*/1 `date +"%h-%m %y %H:%M"`/" >> $file
 
-signalGroup="JOCCP3"
-signalWindowID=`xdotool search --onlyvisible --pid "$signalPid"`
+
+# FINAL STEP IS TO INTERACT WITH THE SIGNAL APP ON THE DESKTOP
+signalWindowId=`xdotool search --onlyvisible --pid "$signalPid"`
 sleep 1
 
-xdotool windowfocus --sync $signalWindowID key Control+n type "$signalGroup"
+xdotool windowfocus --sync $signalWindowId key Control+n type "$signalGroup"
 sleep 1
 
-xdotool windowfocus --sync $signalWindowID key Tab 
+xdotool windowfocus --sync $signalWindowId key Tab 
 sleep 1
 
-xdotool windowfocus --sync $signalWindowID key Return Return
+xdotool windowfocus --sync $signalWindowId key Return Return
+sleep 2
+
+xdotool windowfocus --sync $signalWindowId type "$quote"
 sleep 1
 
-xdotool windowfocus --sync $signalWindowID type "$line"
-sleep 1
-
-xdotool windowfocus --sync $signalWindowID key Return Return
+xdotool windowfocus --sync $signalWindowId key Return Return
 
 echo "Message was successfully sent!"
 
-sleep 3
+sleep 13s
 
-killall -15 signal-desktop
 
-exit 0
+# KILL AND CLOSE
+killall -15 $signal > /dev/null
 
+exit N
