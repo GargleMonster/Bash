@@ -2,7 +2,7 @@
 
 signal='/opt/Signal/signal-desktop'
 file='/home/garglemonster/Documents/bash_scripts/signal/100_quotes'
-signalGroup='Andrea Mazza'
+signalGroup='JOCCP3'
 isRunning=false
 
 
@@ -26,7 +26,7 @@ do
 		/bin/bash /home/garglemonster/Documents/bash_scripts/signal/startSignal.sh & signalPid=$(($! + 2))
 		echo "$signal was not running, but we started it with pidof: $signalPid"
 		isRunning=true
-		sleep 124s
+		sleep 188s
 	fi
 
 	sleep 7s
@@ -54,7 +54,7 @@ quote=$(echo $line | awk '{print substr($0, 19, length($0))}')
 echo "This is the quote ... "
 echo "$quote"
 sed -i "/$line/d" $file
-echo $line | sed "s/0\s[A-Za-z][A-Za-z][A-Za-z]-[0-9]*\s[0-9]*\s[0-9]*:[0-9]*/1 `date +"%h-%m %y %H:%M"`/" >> $file
+echo $line | sed "s/0\s[A-Za-z][A-Za-z][A-Za-z]-[0-9]*\s[0-9]*\s[0-9]*:[0-9]*/1 `date +"%b-%d %y %H:%M"`/" >> $file
 
 
 # FINAL STEP IS TO INTERACT WITH THE SIGNAL APP ON THE DESKTOP
@@ -77,10 +77,21 @@ xdotool windowfocus --sync $signalWindowId key Return Return
 
 echo "Message was successfully sent!"
 
-sleep 13s
+sleep 17s
 
+echo "Press any key to exit."
+while [ true ]
+do
+	read -t 15 -n 1
+	if [ $? = 0 ]
+	then
+		break
+	else
+		echo "Still waiting ..."
+	fi
+done
 
 # KILL AND CLOSE
 killall -15 $signal > /dev/null
 
-exit N
+exit 0
