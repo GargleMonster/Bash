@@ -4,39 +4,58 @@ signal='/opt/Signal/signal-desktop'
 file='/home/garglemonster/Documents/bash_scripts/signal/100_quotes'
 signalGroup='JOCCP3'
 isRunning=false
+gotsInternets=false
 
-
-# IS SIGNAL OPEN? VERY IMPORTANT QUESTION
-while [ "$isRunning" = false ] 
-do 
-	if ps ax | grep -v grep | grep $signal > /dev/null
+# FIRST LETS CHECK IF WE GOTS SOME INTERWEBS
+#
+while [ "$gotsInternets" = false ]
+do
+	wget -q --spider https://www.google.com
+	
+	if [ $? -eq 0 ]
 	then
-		killall -15 $signal
-		# DECIDED TO KILL ANY INSTANCE BECAUSE IF IT IS ALREADY OPEN IT CREATES PROBLEMS
-		# I DON'T WANT TO DEAL WITH RIGHT NOW
-		# isRunning=true
-		# list=$(pidof $signal)
-		# echo $list > list.txt
-		# sed -i 's/ /\n/g' list.txt
-		# sort -n -o list.txt list.txt
-		# signalPid=$(head -n 1 list.txt)
-		# rm -f list.txt
-		# echo "$signal was already running with a pidof: $signalPid"
+		echo "We have interWEBS! May your signaling prove fruitful ..."
+		gotsInternets=true
 	else
-		/bin/bash /home/garglemonster/Documents/bash_scripts/signal/startSignal.sh & signalPid=$(($! + 2))
-		echo "$signal was not running, but we started it with pidof: $signalPid"
-		isRunning=true
-		sleep 188s
+		echo "Currently, there is no internet! You're precious signal bot must await a connection ..."
+		sleep 15s
 	fi
-
-	sleep 7s
 done
 
+# BEFORE WE OPEN SIGNAL LETS CLEAN UP THOSE NASTY LOG FILES IN CASE A PID WAS RECYCLED
+#
+truncate -s 0 ~/.config/Signal/logs/main.log
+
+# SIGNAL SHOULD NEVER ALREADY BE STARTED; SO WE'LL START IT
+#
+/bin/bash /home/garglemonster/Documents/bash_scripts/signal/startSignal.sh & signalPid=$(($! + 2))
+echo "$signal has been started with a pidof: $signalPid"
+sleep 11s
+
+# IS SIGNAL READY TO SEND MESSAGES? A VERY IMPORTANT QUESTION
+#
+while [ "$isRunning" = false ] 
+do 
+	grep -q "\"pid\":$signalPid.*\"App" ~/.config/Signal/logs/main.log
+	
+	if [ $? -eq 0 ]
+	then
+		echo "Signal is ready now ..."
+		isRunning=true
+		sleep 3s
+	else
+		echo "Still not ready yet ..."
+		sleep 17s
+	fi
+done
 
 # SIGNAL IS UP AND RUNNING NOW SO DO THE OTHER THINGS
 # COUNT THE LINES THEN PULL THE RANDO NUMBER
-lines=$(awk '/^0/{n++}; END {print n+0}' $file)
+#
+lines=$(awk '/^0/{n++}; END {print n+1}' $file)
+
 # IF YOU'VE USED UP ALL THE QUOTES WE MUST BEGIN AGAIN, SET EVERYTHING TO 0
+#
 if [ "$lines" -eq 0 ] 
 then
 	sed -i 's/^1/0/' $file
@@ -49,6 +68,7 @@ echo "The selected line is $randomNumber!"
 
 # NOW THAT WE HAVE THE LINE NUMBER LETS GRAB IT FROM THE FILE
 # THEN LETS DO A LITTLE HOUSEKEEPING
+#
 line=$(sed -n "$randomNumber"p $file)
 quote=$(echo $line | awk '{print substr($0, 19, length($0))}')
 echo "This is the quote ... "
@@ -58,6 +78,7 @@ echo $line | sed "s/0\s[A-Za-z][A-Za-z][A-Za-z]-[0-9]*\s[0-9]*\s[0-9]*:[0-9]*/1 
 
 
 # FINAL STEP IS TO INTERACT WITH THE SIGNAL APP ON THE DESKTOP
+#
 signalWindowId=`xdotool search --onlyvisible --pid "$signalPid"`
 sleep 1
 
@@ -75,14 +96,19 @@ sleep 1
 
 xdotool windowfocus --sync $signalWindowId key Return Return
 
-echo "Message was successfully sent!"
+#grep -q "\"pid\":$signalPid.*createOrUpdateItem" ~/.config/Signal/logs/main.log
 
-sleep 17s
+#if [ $? -eq 0 ]
+#then
+#	echo "Message was successfully sent!"
+#else
+#	echo "Message failed to send, not sure why ..."
+#fi
 
-echo "Press any key to exit."
+echo "Press any key to close the signal bot ..."
 while [ true ]
 do
-	read -t 15 -n 1
+	read -t 11 -n 1
 	if [ $? = 0 ]
 	then
 		break
@@ -92,6 +118,7 @@ do
 done
 
 # KILL AND CLOSE
+#
 killall -15 $signal > /dev/null
 
 exit 0
